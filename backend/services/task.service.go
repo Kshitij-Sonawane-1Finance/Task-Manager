@@ -1,11 +1,13 @@
 package services
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/gofiber/fiber/v2"
 	conn "github.com/kshitij/taskManager/connection"
+	"github.com/kshitij/taskManager/dto"
 	"github.com/kshitij/taskManager/models"
 	"gorm.io/gorm"
 )
@@ -41,44 +43,125 @@ func CreateTask(ctx *fiber.Ctx, task models.Task) ReturnType {
 }
 
 
-func FindTask(ctx *fiber.Ctx, id uint64) (models.Task, error) {
+func FindTask(ctx *fiber.Ctx, id uint64) (dto.Task, error) {
 
 	var db *gorm.DB = conn.InitializeDB();
-	var task models.Task;
+	var task dto.Task;
 
-	// db.First(&task, id);
 	err := db.First(&task, id).Error;
 
-	if task.UserID == 0 {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return task, err;
 	}
-
-	fmt.Println(task);
 
 	return task, nil;
 
 }
 
+func FindAllTasks(ctx *fiber.Ctx) ([]dto.Task, error) {
 
-// func DeleteTask(ctx *fiber.Ctx, deleteTaskStruct DeleteTaskStruct) ReturnType {
-// 	var db *gorm.DB = conn.InitializeDB();
-// 	var task models.Task;
+	var db *gorm.DB = conn.InitializeDB();
+	var tasks []dto.Task;
 
-// 	db.First(&task, DeleteTaskStruct.ID);
+	err := db.Find(&tasks).Error;
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return tasks, err;
+	}
+
+	return tasks, nil;
+
+}
 
 
-// 	// result := db.Delete(&task, deleteTaskStruct.ID);
-// 	// if result.Error != nil {
-// 	// 	return ReturnType{
-// 	// 		StatusCode: http.StatusInternalServerError,
-// 	// 		Message: "Internal Server Error",
-// 	// 	};
-// 	// }
+
+func DeleteTask(ctx *fiber.Ctx, id uint64) ReturnType {
+	var db *gorm.DB = conn.InitializeDB();
+	var task models.Task;
+
+	_, err := FindTask(ctx, id);
+	if err != nil {
+		return ReturnType{
+			StatusCode: http.StatusNotFound,
+			Message: "Task Does not exist",
+		}
+	}
+
+	result := db.Delete(&task, id);
+	if result.Error != nil {
+		return ReturnType{
+			StatusCode: http.StatusInternalServerError,
+			Message: "Internal Server Error",
+		};
+	}
 	
-// 	// fmt.Println("Deleted Row");
-// 	// fmt.Println(result);
-// 	return ReturnType{
-// 		StatusCode: http.StatusOK,
-// 		Message: "Task Deleted",
-// 	};
-// }
+	fmt.Println("Deleted Row");
+	// fmt.Println(result);
+	return ReturnType{
+		StatusCode: http.StatusOK,
+		Message: "Task Deleted",
+	};
+}
+
+
+func SoftDelete(ctx *fiber.Ctx, id uint64) ReturnType {
+
+	var db *gorm.DB = conn.InitializeDB();
+	var task models.Task;
+
+	// err := db.First(&task, id).Error;
+	_, err := FindTask(ctx, id);
+	if err != nil {
+		return ReturnType{
+			StatusCode: http.StatusNotFound,
+			Message: "Task Does Not Exist",
+		}
+	}
+	
+	// task.Active = false;
+
+	// err = db.Save(&task).Error;
+
+	err = db.Model(&task).Where("id = ?", id).Update("active", false).Error;
+	if err != nil {
+		return ReturnType{
+			StatusCode: http.StatusInternalServerError,
+			Message: "Internal Server Error",
+		}
+	}
+
+	return ReturnType{
+		StatusCode: http.StatusOK,
+		Message: "Task Deleted Successfully",
+	}
+
+}
+
+
+func UpdateTask(ctx *fiber.Ctx, id uint64, updateTask dto.UpdateTask) ReturnType {
+
+	var db *gorm.DB = conn.InitializeDB();
+	var task models.Task;
+
+	_, err := FindTask(ctx, id);
+	if err != nil {
+		return ReturnType{
+			StatusCode: http.StatusNotFound,
+			Message: "Task Does not exist",
+		}
+	}
+
+	err = db.Model(&task).Where("id = ?", id).Updates(updateTask).Error;
+	if err != nil {
+		return ReturnType{
+			StatusCode: http.StatusInternalServerError,
+			Message: "Internal Server Error",
+		}
+	}
+
+	return ReturnType{
+		StatusCode: http.StatusOK,
+		Message: "Task Updated Successfully",
+	}
+
+}

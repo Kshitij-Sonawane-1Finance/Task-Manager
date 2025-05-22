@@ -10,7 +10,11 @@ func TaskRouter(app *fiber.App) {
     //     return c.SendString("Hello, World!")
     // })
 
-	taskApi := app.Group("/api")
-	taskApi.Post("/task", controller.CreateTask)
-	taskApi.Get("/task/:id", controller.FindTask)
+	taskApi := app.Group("/api/task")
+	taskApi.Get("/", controller.FindAllTasks)
+	taskApi.Post("/", controller.CreateTask)
+	taskApi.Delete("/softDelete/:id", controller.SoftDelete)
+	taskApi.Get("/:id", controller.FindTask)
+	taskApi.Delete("/:id", controller.DeleteTask)
+	taskApi.Put("/:id", controller.UpdateTask)
 }

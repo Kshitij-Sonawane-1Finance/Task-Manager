@@ -25,7 +25,7 @@ data "external_schema" "gorm" {
 
 env "gorm" {
   src = data.external_schema.gorm.url
-  dev = "postgres://postgres:kshitij@localhost:5432/golang_db?sslmode=disable"
+  dev = "postgres://postgres:kshitij@localhost:5432/tp_db?sslmode=disable"
   migration {
     dir = "file://db/migrations"
   }
