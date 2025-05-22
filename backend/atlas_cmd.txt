@@ -1,0 +1,11 @@
+// To create Migrations
+atlas migrate diff --env gorm
+
+// To apply the migrations
+atlas migrate apply --env gorm --url ""
+
+// To check the migration status
+atlas migrate status --env gorm
+
+// To preview the migration.
+atlas migrate apply --env gorm --dry-run
