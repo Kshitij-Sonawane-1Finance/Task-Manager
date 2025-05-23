@@ -17,10 +17,6 @@ type ReturnType struct {
 	Message string `json:"message"`
 }
 
-type DeleteTaskStruct struct {
-	ID uint `json:"id"`
-}
-
 func CreateTask(ctx *fiber.Ctx, task models.Task) ReturnType {
 
 	var db *gorm.DB = conn.InitializeDB()
@@ -43,12 +39,12 @@ func CreateTask(ctx *fiber.Ctx, task models.Task) ReturnType {
 }
 
 
-func FindTask(ctx *fiber.Ctx, id uint64) (dto.Task, error) {
+func FindTask(ctx *fiber.Ctx, id uint64, userId uint) (dto.Task, error) {
 
 	var db *gorm.DB = conn.InitializeDB();
 	var task dto.Task;
 
-	err := db.First(&task, id).Error;
+	err := db.Where("user_id = ?", userId).Where("active = ?", true).First(&task, id).Error;
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return task, err;
@@ -58,12 +54,12 @@ func FindTask(ctx *fiber.Ctx, id uint64) (dto.Task, error) {
 
 }
 
-func FindAllTasks(ctx *fiber.Ctx) ([]dto.Task, error) {
+func FindAllTasks(ctx *fiber.Ctx, userId uint) ([]dto.Task, error) {
 
 	var db *gorm.DB = conn.InitializeDB();
 	var tasks []dto.Task;
 
-	err := db.Find(&tasks).Error;
+	err := db.Where("user_id = ?", userId).Where("active = ?", true).Find(&tasks).Error;
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return tasks, err;
@@ -75,11 +71,11 @@ func FindAllTasks(ctx *fiber.Ctx) ([]dto.Task, error) {
 
 
 
-func DeleteTask(ctx *fiber.Ctx, id uint64) ReturnType {
+func DeleteTask(ctx *fiber.Ctx, id uint64, userId uint) ReturnType {
 	var db *gorm.DB = conn.InitializeDB();
 	var task models.Task;
 
-	_, err := FindTask(ctx, id);
+	_, err := FindTask(ctx, id, userId);
 	if err != nil {
 		return ReturnType{
 			StatusCode: http.StatusNotFound,
@@ -104,13 +100,13 @@ func DeleteTask(ctx *fiber.Ctx, id uint64) ReturnType {
 }
 
 
-func SoftDelete(ctx *fiber.Ctx, id uint64) ReturnType {
+func SoftDelete(ctx *fiber.Ctx, id uint64, userId uint) ReturnType {
 
 	var db *gorm.DB = conn.InitializeDB();
 	var task models.Task;
 
 	// err := db.First(&task, id).Error;
-	_, err := FindTask(ctx, id);
+	_, err := FindTask(ctx, id, userId);
 	if err != nil {
 		return ReturnType{
 			StatusCode: http.StatusNotFound,
@@ -138,12 +134,12 @@ func SoftDelete(ctx *fiber.Ctx, id uint64) ReturnType {
 }
 
 
-func UpdateTask(ctx *fiber.Ctx, id uint64, updateTask dto.UpdateTask) ReturnType {
+func UpdateTask(ctx *fiber.Ctx, id uint64, updateTask dto.UpdateTask, userId uint) ReturnType {
 
 	var db *gorm.DB = conn.InitializeDB();
 	var task models.Task;
 
-	_, err := FindTask(ctx, id);
+	_, err := FindTask(ctx, id, userId);
 	if err != nil {
 		return ReturnType{
 			StatusCode: http.StatusNotFound,

@@ -39,7 +39,8 @@ func FindTask(ctx *fiber.Ctx) error {
 		log.Fatal(err);
 	}
 
-	result, err := services.FindTask(ctx, idInt);
+	userID := uint(ctx.Locals("user_id").(uint64));
+	result, err := services.FindTask(ctx, idInt, userID);
 	if err != nil {
 		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"message": "Task does not Exist",
@@ -52,10 +53,10 @@ func FindTask(ctx *fiber.Ctx) error {
 
 func FindAllTasks(ctx *fiber.Ctx) error {
 
-	userID := ctx.Locals("user_id").(float64);
+	userID := uint(ctx.Locals("user_id").(uint64));
 	fmt.Println("User ID is: ", userID);
 
-	result, err := services.FindAllTasks(ctx);
+	result, err := services.FindAllTasks(ctx, userID);
 	if err != nil {
 		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"message": "Task does not Exist",
@@ -75,7 +76,8 @@ func DeleteTask(ctx *fiber.Ctx) error {
 		log.Fatal(err);
 	}
 
-	result := services.DeleteTask(ctx, idInt);
+	userID := uint(ctx.Locals("user_id").(uint64));
+	result := services.DeleteTask(ctx, idInt, userID);
 
 	return ctx.Status(result.StatusCode).JSON(result);
 }
@@ -89,7 +91,8 @@ func SoftDelete(ctx *fiber.Ctx) error {
 		log.Fatal(err);
 	}
 
-	result := services.SoftDelete(ctx, idInt);
+	userID := uint(ctx.Locals("user_id").(uint64));
+	result := services.SoftDelete(ctx, idInt, userID);
 
 	return ctx.Status(result.StatusCode).JSON(result);
 }
@@ -112,7 +115,8 @@ func UpdateTask(ctx *fiber.Ctx) error {
 		})
 	}
 
-	result := services.UpdateTask(ctx, idInt, updateTask);
+	userID := uint(ctx.Locals("user_id").(uint64));
+	result := services.UpdateTask(ctx, idInt, updateTask, userID);
 
 	return ctx.Status(result.StatusCode).JSON(result);
 
