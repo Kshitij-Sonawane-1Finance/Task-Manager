@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"log"
 	"strconv"
 
@@ -14,7 +15,6 @@ import (
 func CreateTask(ctx *fiber.Ctx) error {
 
 	var task models.Task
-
 	err := ctx.BodyParser(&task)
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -22,6 +22,7 @@ func CreateTask(ctx *fiber.Ctx) error {
 		})
 	}
 
+	task.UserID = uint(ctx.Locals("user_id").(uint64));
 	result := services.CreateTask(ctx, task)
 
 	return ctx.Status(result.StatusCode).JSON(result);
@@ -50,6 +51,9 @@ func FindTask(ctx *fiber.Ctx) error {
 }
 
 func FindAllTasks(ctx *fiber.Ctx) error {
+
+	userID := ctx.Locals("user_id").(float64);
+	fmt.Println("User ID is: ", userID);
 
 	result, err := services.FindAllTasks(ctx);
 	if err != nil {

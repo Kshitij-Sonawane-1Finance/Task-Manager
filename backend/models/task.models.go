@@ -4,7 +4,7 @@ import "time"
 
 type Task struct {
 	ID          uint      `gorm:"primaryKey;autoIncrement" json:"id,omitempty"`
-	UserID      uint      `gorm:"not null;index" json:"user_id"`
+	UserID      uint      `gorm:"not null;index" json:"-"`
 	User        User      `gorm:"foreignKey:UserID;constraint:OnUpdated:CASCADE,OnDelete:CASCADE" json:"-"`
 	Title       string    `json:"title"`
 	Description string    `json:"description"`

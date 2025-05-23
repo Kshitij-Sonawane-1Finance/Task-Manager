@@ -6,6 +6,7 @@ func RouteHandler() *fiber.App {
 	app := fiber.New()
 
 	TaskRouter(app);
+	UserRouter(app);
 
 	return app;
 }
