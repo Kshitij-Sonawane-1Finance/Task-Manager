@@ -12,14 +12,33 @@ import (
 	"gorm.io/gorm"
 )
 
+
+type TaskService interface {
+	CreateTask(ctx *fiber.Ctx, task models.Task) ReturnType
+	FindTask(ctx *fiber.Ctx, id uint64, userId uint) (dto.Task, error)
+	FindAllTasks(ctx *fiber.Ctx, userId uint) ([]dto.Task, error)
+	DeleteTask(ctx *fiber.Ctx, id uint64, userId uint) ReturnType
+	SoftDelete(ctx *fiber.Ctx, id uint64, userId uint) ReturnType
+	UpdateTask(ctx *fiber.Ctx, id uint64, updateTask dto.UpdateTask, userId uint) ReturnType
+}
+
+type taskService struct {
+	dbService conn.DBService
+}
+
+func NewTaskService(dbService conn.DBService) TaskService {
+	return &taskService{dbService}
+}
+
+
 type ReturnType struct {
 	StatusCode int `json:"statusCode"`
 	Message string `json:"message"`
 }
 
-func CreateTask(ctx *fiber.Ctx, task models.Task) ReturnType {
+func (s *taskService) CreateTask(ctx *fiber.Ctx, task models.Task) ReturnType {
 
-	var db *gorm.DB = conn.InitializeDB()
+	var db *gorm.DB = s.dbService.InitializeDB()
 
 	result := db.Create(&task)
 	if result.Error != nil {
@@ -39,9 +58,9 @@ func CreateTask(ctx *fiber.Ctx, task models.Task) ReturnType {
 }
 
 
-func FindTask(ctx *fiber.Ctx, id uint64, userId uint) (dto.Task, error) {
+func (s *taskService) FindTask(ctx *fiber.Ctx, id uint64, userId uint) (dto.Task, error) {
 
-	var db *gorm.DB = conn.InitializeDB();
+	var db *gorm.DB = s.dbService.InitializeDB()
 	var task dto.Task;
 
 	err := db.Where("user_id = ?", userId).Where("active = ?", true).First(&task, id).Error;
@@ -54,9 +73,9 @@ func FindTask(ctx *fiber.Ctx, id uint64, userId uint) (dto.Task, error) {
 
 }
 
-func FindAllTasks(ctx *fiber.Ctx, userId uint) ([]dto.Task, error) {
+func (s *taskService) FindAllTasks(ctx *fiber.Ctx, userId uint) ([]dto.Task, error) {
 
-	var db *gorm.DB = conn.InitializeDB();
+	var db *gorm.DB = s.dbService.InitializeDB()
 	var tasks []dto.Task;
 
 	err := db.Where("user_id = ?", userId).Where("active = ?", true).Find(&tasks).Error;
@@ -71,11 +90,11 @@ func FindAllTasks(ctx *fiber.Ctx, userId uint) ([]dto.Task, error) {
 
 
 
-func DeleteTask(ctx *fiber.Ctx, id uint64, userId uint) ReturnType {
-	var db *gorm.DB = conn.InitializeDB();
+func (s *taskService) DeleteTask(ctx *fiber.Ctx, id uint64, userId uint) ReturnType {
+	var db *gorm.DB = s.dbService.InitializeDB()
 	var task models.Task;
 
-	_, err := FindTask(ctx, id, userId);
+	_, err := s.FindTask(ctx, id, userId);
 	if err != nil {
 		return ReturnType{
 			StatusCode: http.StatusNotFound,
@@ -100,13 +119,13 @@ func DeleteTask(ctx *fiber.Ctx, id uint64, userId uint) ReturnType {
 }
 
 
-func SoftDelete(ctx *fiber.Ctx, id uint64, userId uint) ReturnType {
+func (s *taskService) SoftDelete(ctx *fiber.Ctx, id uint64, userId uint) ReturnType {
 
-	var db *gorm.DB = conn.InitializeDB();
+	var db *gorm.DB = s.dbService.InitializeDB()
 	var task models.Task;
 
 	// err := db.First(&task, id).Error;
-	_, err := FindTask(ctx, id, userId);
+	_, err := s.FindTask(ctx, id, userId);
 	if err != nil {
 		return ReturnType{
 			StatusCode: http.StatusNotFound,
@@ -134,12 +153,12 @@ func SoftDelete(ctx *fiber.Ctx, id uint64, userId uint) ReturnType {
 }
 
 
-func UpdateTask(ctx *fiber.Ctx, id uint64, updateTask dto.UpdateTask, userId uint) ReturnType {
+func (s *taskService) UpdateTask(ctx *fiber.Ctx, id uint64, updateTask dto.UpdateTask, userId uint) ReturnType {
 
-	var db *gorm.DB = conn.InitializeDB();
+	var db *gorm.DB = s.dbService.InitializeDB()
 	var task models.Task;
 
-	_, err := FindTask(ctx, id, userId);
+	_, err := s.FindTask(ctx, id, userId);
 	if err != nil {
 		return ReturnType{
 			StatusCode: http.StatusNotFound,

@@ -16,8 +16,30 @@ import (
 	"gorm.io/gorm"
 )
 
+// Interface for abstaraction, just display the signature of the Methods which are available in the services
+type UserService interface {
+	CreateUser(ctx *fiber.Ctx, user models.User) ReturnType
+	Login(ctx *fiber.Ctx, userLogin dto.UserLogin) dto.UserLoginReturnType
+	generateJWT(userID uint) (string, error)
+	verifyPassword(dbPassword string, password string) bool
+	hashPassword(password string) (string, error)
+}
 
-func hashPassword(password string) (string, error) {
+// Struct which will consist of all the methods
+// and additinal dependencies
+type userService struct {
+	dbService conn.DBService
+	loadEnvService loadEnv.LoadEnvService
+}
+
+
+// constructor which returns all the methods
+func NewUserService(dbService conn.DBService, loadEnvService loadEnv.LoadEnvService) UserService {
+	return &userService{dbService, loadEnvService}
+}
+
+
+func (s *userService) hashPassword(password string) (string, error) {
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), 12);
 	if err != nil {
@@ -28,7 +50,7 @@ func hashPassword(password string) (string, error) {
 
 }
 
-func verifyPassword(dbPassword string, password string) bool {
+func (s *userService) verifyPassword(dbPassword string, password string) bool {
 
 	err := bcrypt.CompareHashAndPassword([]byte(dbPassword), []byte(password));
 
@@ -37,14 +59,14 @@ func verifyPassword(dbPassword string, password string) bool {
 }
 
 
-func generateJWT(userID uint) (string, error) {
+func (s *userService) generateJWT(userID uint) (string, error) {
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": userID,
 		"exp": time.Now().Add(time.Hour * 72).Unix(),
 	})
 
-	loadEnv.LoadEnv();
+	s.loadEnvService.LoadEnv();
 	jwtSecret := os.Getenv("JWT_SECRET")
 	
 	tokenString, err := token.SignedString([]byte(jwtSecret));
@@ -56,10 +78,10 @@ func generateJWT(userID uint) (string, error) {
 
 }
 
+// this s *userService works like { this of javascript }
+func (s *userService) CreateUser(ctx *fiber.Ctx, user models.User) ReturnType {
 
-func CreateUser(ctx *fiber.Ctx, user models.User) ReturnType {
-
-	var db *gorm.DB = conn.InitializeDB();
+	var db *gorm.DB = s.dbService.InitializeDB();
 	var dbUser models.User;
 
 	db.First(&dbUser, "email = ?", user.Email);
@@ -70,7 +92,7 @@ func CreateUser(ctx *fiber.Ctx, user models.User) ReturnType {
 		}
 	}
 
-	hashedPassword, err := hashPassword(user.Password);
+	hashedPassword, err := s.hashPassword(user.Password);
 	if err != nil {
 		return ReturnType{
 			StatusCode: http.StatusInternalServerError,
@@ -99,9 +121,9 @@ func CreateUser(ctx *fiber.Ctx, user models.User) ReturnType {
 }
 
 
-func Login(ctx *fiber.Ctx, userLogin dto.UserLogin) dto.UserLoginReturnType {
+func (s *userService) Login(ctx *fiber.Ctx, userLogin dto.UserLogin) dto.UserLoginReturnType {
 
-	var db *gorm.DB = conn.InitializeDB();
+	var db *gorm.DB = s.dbService.InitializeDB();
 	var dbUser models.User;
 
 	db.First(&dbUser, "email = ?", userLogin.Email);
@@ -112,7 +134,7 @@ func Login(ctx *fiber.Ctx, userLogin dto.UserLogin) dto.UserLoginReturnType {
 		}
 	}
 
-	isPasswordMatch := verifyPassword(dbUser.Password, userLogin.Password)
+	isPasswordMatch := s.verifyPassword(dbUser.Password, userLogin.Password)
 	if !isPasswordMatch {
 		return dto.UserLoginReturnType{
 			StatusCode: http.StatusUnauthorized,
@@ -120,7 +142,7 @@ func Login(ctx *fiber.Ctx, userLogin dto.UserLogin) dto.UserLoginReturnType {
 		}
 	}
 
-	accessToken, err := generateJWT(dbUser.ID)
+	accessToken, err := s.generateJWT(dbUser.ID)
 	if err != nil {
 		return dto.UserLoginReturnType{
 			StatusCode: http.StatusInternalServerError,

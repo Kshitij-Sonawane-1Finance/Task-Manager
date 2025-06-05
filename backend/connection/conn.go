@@ -9,9 +9,21 @@ import (
 	"gorm.io/gorm"
 )
 
-func InitializeDB() *gorm.DB {
+type DBService interface {
+	InitializeDB() *gorm.DB
+}
 
-	loadEnv.LoadEnv();
+type dbService struct {
+	loadEnvService loadEnv.LoadEnvService
+}
+
+func NewDBService(loadEnvService loadEnv.LoadEnvService) DBService {
+	return &dbService{loadEnvService};
+}
+
+func (c *dbService) InitializeDB() *gorm.DB {
+
+	c.loadEnvService.LoadEnv();
 
 	dsn := os.Getenv("DSN")
 

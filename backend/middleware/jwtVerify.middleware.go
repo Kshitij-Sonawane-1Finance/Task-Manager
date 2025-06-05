@@ -9,7 +9,19 @@ import (
 	"github.com/kshitij/taskManager/loadEnv"
 )
 
-func JWTMiddleWare(ctx *fiber.Ctx) error {
+type MiddlewareService interface {
+	JWTMiddleWare(ctx *fiber.Ctx) error
+}
+
+type middlewareService struct {
+	loadEnvService loadEnv.LoadEnvService
+}
+
+func NewMiddlewareService(loadEnvService loadEnv.LoadEnvService) MiddlewareService {
+	return &middlewareService{loadEnvService}
+}
+
+func (m *middlewareService) JWTMiddleWare(ctx *fiber.Ctx) error {
 
 	authToken := ctx.Get("Authorization");
 	tokenStr := strings.Split(authToken, " ")[1]
@@ -23,7 +35,7 @@ func JWTMiddleWare(ctx *fiber.Ctx) error {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fiber.NewError(fiber.StatusUnauthorized, "Invalid token Signing Method")
 		}
-		loadEnv.LoadEnv();
+		m.loadEnvService.LoadEnv();
 		jwtSecret := os.Getenv("JWT_SECRET")
 		return []byte(jwtSecret), nil;
 	})
