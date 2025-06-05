@@ -74,7 +74,7 @@ func CreateUser(ctx *fiber.Ctx, user models.User) ReturnType {
 	if err != nil {
 		return ReturnType{
 			StatusCode: http.StatusInternalServerError,
-			Message: "Innternal Server Error",
+			Message: "Internal Server Error",
 		}
 	}
 
