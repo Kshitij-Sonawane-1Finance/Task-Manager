@@ -52,3 +52,12 @@ func (c *UserController) Login(ctx *fiber.Ctx) error {
 	return ctx.Status(result.StatusCode).JSON(result);
 
 }
+
+
+func (c *UserController) FetchUser(ctx *fiber.Ctx) error {
+
+	userId := uint(ctx.Locals("user_id").(uint64))
+
+	return c.userService.FetchUser(ctx, userId);
+
+}

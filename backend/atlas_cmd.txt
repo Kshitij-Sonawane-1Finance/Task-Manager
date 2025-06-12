@@ -2,7 +2,7 @@
 atlas migrate diff --env gorm
 
 // To apply the migrations
-atlas migrate apply --env gorm --url ""
+atlas migrate apply --env gorm --url "postgres://postgres:kshitij@localhost:5432/golang_db?sslmode=disable"
 
 // To check the migration status
 atlas migrate status --env gorm

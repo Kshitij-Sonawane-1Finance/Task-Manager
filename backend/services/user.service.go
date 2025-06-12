@@ -23,6 +23,7 @@ type UserService interface {
 	generateJWT(userID uint) (string, error)
 	verifyPassword(dbPassword string, password string) bool
 	hashPassword(password string) (string, error)
+	FetchUser(ctx *fiber.Ctx, userID uint) error
 }
 
 // Struct which will consist of all the methods
@@ -36,6 +37,13 @@ type userService struct {
 // constructor which returns all the methods
 func NewUserService(dbService conn.DBService, loadEnvService loadEnv.LoadEnvService) UserService {
 	return &userService{dbService, loadEnvService}
+}
+
+
+type fetchUserStruct struct {
+	ID uint `json:"id"`
+	Name string `json:"name"`
+	Email string `json:"email"`
 }
 
 
@@ -156,4 +164,21 @@ func (s *userService) Login(ctx *fiber.Ctx, userLogin dto.UserLogin) dto.UserLog
 		AccessToken: accessToken,
 	}
 
+}
+
+
+func (s *userService) FetchUser(ctx *fiber.Ctx, userID uint) error {
+
+	var db *gorm.DB = s.dbService.InitializeDB();
+	var user fetchUserStruct;
+
+	res := db.Model(&models.User{}).Select("id", "name", "email").Where("id = ?", userID).Scan(&user)
+	if res.Error != nil {
+		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"status": 404,
+			"message": "User Not Found",
+		})
+	}
+
+	return ctx.Status(fiber.StatusOK).JSON(user);
 }
