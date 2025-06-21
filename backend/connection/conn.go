@@ -21,7 +21,14 @@ func NewDBService(loadEnvService loadEnv.LoadEnvService) DBService {
 	return &dbService{loadEnvService};
 }
 
+var dbInstance *gorm.DB;
+
 func (c *dbService) InitializeDB() *gorm.DB {
+
+	// For avoiding creating multiple open connections with the db
+	if dbInstance != nil {
+		return dbInstance
+	}
 
 	c.loadEnvService.LoadEnv();
 
@@ -32,6 +39,7 @@ func (c *dbService) InitializeDB() *gorm.DB {
 		log.Fatal(err);
 	}
 
+	dbInstance = DB;
 	return DB;
 
 }

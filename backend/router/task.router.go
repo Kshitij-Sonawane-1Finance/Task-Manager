@@ -21,11 +21,13 @@ func TaskRouter(app *fiber.App) {
 	middlewareService := middleware.NewMiddlewareService(loadEnvService);
 
 	taskApi := app.Group("/api/task", middlewareService.JWTMiddleWare)
-	taskApi.Get("/", taskController.FindAllTasks)
+	// taskApi.Get("/", taskController.FindAllTasks)
 	taskApi.Post("/", taskController.CreateTask)
-	taskApi.Delete("/softDelete/:id", taskController.SoftDelete)
+	taskApi.Get("/", taskController.FindTasks)
+	taskApi.Delete("/hardDelete/:id", taskController.DeleteTask)
+	taskApi.Get("/search/:searchData", taskController.SearchTask)
 	taskApi.Get("/:id", taskController.FindTask)
-	taskApi.Delete("/:id", taskController.DeleteTask)
+	taskApi.Delete("/:id", taskController.SoftDelete)
 	taskApi.Put("/:id", taskController.UpdateTask)
 
 }

@@ -1,5 +1,10 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import axios from 'axios'
+import TaskTable from '../components/TaskTable'
+import TaskForm from '../components/TaskForm'
+import Sidebar from '../components/Sidebar'
+import TaskDetailsModal from '../components/TaskDetailsModal'
 
 // Sample task data
 const sampleTasks = [
@@ -23,108 +28,230 @@ const menuItems = [
   },
 ]
 
-const user = {
-  name: 'Kshitij',
-  email: 'k@mail.com',
-}
-
 const getInitials = (name) => name.split(' ').map(n => n[0]).join('').toUpperCase()
 
 const Dashboard = () => {
   const [active, setActive] = useState('Tasks')
   const [showProfile, setShowProfile] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [tasks, setTasks] = useState([])
+  const [tasksLoading, setTasksLoading] = useState(true)
+  const [successMessage, setSuccessMessage] = useState('')
+  const [editingTask, setEditingTask] = useState(null)
+  const [selectedTaskId, setSelectedTaskId] = useState(null)
+  const [page, setPage] = useState(1)
+  const [count, setCount] = useState(0)
   const navigate = useNavigate()
 
-  const handleLogout = () => {
-    localStorage.removeItem('accessToken')
-    navigate('/')
+  const fetchTasks = async () => {
+    console.log('Fetching tasks...');
+    try {
+      const token = localStorage.getItem('accessToken')
+      if (!token) {
+        navigate('/')
+        return
+      }
+      // Use current page
+      const response = await axios.get(`http://localhost:3000/api/task?page=${page}&limit=5&sortBy=end_date&orderBy=desc`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+      if (response.data) {
+        setTasks(response.data.tasks)
+        setCount(response.data.count)
+      }
+    } catch (error) {
+      console.error('Error fetching tasks:', error)
+      if (error.response?.status === 401) {
+        localStorage.removeItem('accessToken')
+        navigate('/')
+      }
+    } finally {
+      setTasksLoading(false)
+    }
   }
 
-  const filteredTasks = sampleTasks.filter(task =>
-    task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    task.status.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    task.priority.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  useEffect(() => {
+    if (active === 'Tasks') {
+      fetchTasks()
+    }
+  }, [active, navigate, page])
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const token = localStorage.getItem('accessToken')
+        if (!token) {
+          navigate('/')
+          return
+        }
+
+        const response = await axios.get('http://localhost:3000/api/user/fetchUser', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        })
+
+        if (response.data) {
+          setUser(response.data)
+        } else {
+          console.error('Failed to fetch user data')
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error)
+        if (error.response?.status === 401) {
+          localStorage.removeItem('accessToken')
+          navigate('/')
+        }
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchUserData()
+  }, [navigate])
+
+  const fetchTaskById = async (taskId) => {
+    try {
+      const token = localStorage.getItem('accessToken')
+      const response = await axios.get(`http://localhost:3000/api/task/${taskId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+      if (response.data) {
+        return response.data
+      }
+    } catch (error) {
+      console.error('Error fetching task details:', error)
+      alert('Failed to fetch task details')
+    }
+    return null
+  }
+
+  const handleEdit = async (taskId) => {
+    if (!taskId) return
+    const task = await fetchTaskById(taskId)
+    if (task) {
+      setEditingTask(task)
+      setSelectedTaskId(null)
+      setActive('Create Task')
+    }
+  }
+
+  // Show details modal for a task
+  const handleViewTask = (taskId) => {
+    setSelectedTaskId(taskId)
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    const formData = new FormData(e.target)
+    const taskData = {
+      title: formData.get('title'),
+      description: formData.get('description'),
+      start_date: formData.get('start_date'),
+      end_date: formData.get('end_date'),
+      priority: formData.get('priority'),
+      status: formData.get('status')
+    }
+
+    try {
+      const token = localStorage.getItem('accessToken')
+      let response
+      let updatedTaskId = null
+
+      if (editingTask) {
+        response = await axios.put(`http://localhost:3000/api/task/${editingTask.id}`, taskData, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        })
+        console.log("PUT response:", response);
+        updatedTaskId = editingTask.id
+      } else {
+        response = await axios.post('http://localhost:3000/api/task/', taskData, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        })
+        console.log("POST response:", response);
+        updatedTaskId = response.data?.id
+      }
+
+      if (response.status === 201 || response.status === 200) {
+        console.log("Reloading...");
+        fetchTasks()
+        setSuccessMessage(response.data.message || (editingTask ? 'Task updated successfully!' : 'Task created successfully!'))
+        e.target.reset()
+        setEditingTask(null)
+        setSelectedTaskId(updatedTaskId)
+      }
+    } catch (error) {
+      console.log("Error in handleSubmit:", error);
+      console.error('Error saving task:', error)
+      setSuccessMessage('Failed to save task. Please try again.')
+      setTimeout(() => {
+        setSuccessMessage('')
+      }, 3000)
+    }
+  }
+
+  const handleLogout = async () => {
+    try {
+      localStorage.removeItem('accessToken')
+      setShowProfile(false)
+      navigate('/', { replace: true })
+    } catch (error) {
+      console.error('Error during logout:', error)
+    }
+  }
+
+  const handleTaskUpdated = () => {
+    fetchTasks()
+  }
+
+  const handleFiltersChange = (newTasks, newCount) => {
+    setTasks(newTasks)
+    setCount(newCount)
+  }
 
   const renderContent = () => {
     switch (active) {
       case 'Tasks':
         return (
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-800">Tasks</h2>
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search Task"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-64 px-4 py-2 bg-red-50 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <svg
-                  className="absolute right-3 top-2.5 h-5 w-5 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-              </div>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredTasks.map((task) => (
-                    <tr key={task.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{task.title}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                          ${task.status === 'Completed' ? 'bg-green-100 text-green-800' : 
-                            task.status === 'In Progress' ? 'bg-blue-100 text-blue-800' : 
-                            'bg-yellow-100 text-yellow-800'}`}>
-                          {task.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                          ${task.priority === 'High' ? 'bg-red-100 text-red-800' : 
-                            task.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800' : 
-                            'bg-green-100 text-green-800'}`}>
-                          {task.priority}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{task.dueDate}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <button className="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
-                        <button className="text-red-600 hover:text-red-900">Delete</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <TaskTable 
+            tasks={tasks}
+            searchQuery={searchQuery}
+            onEdit={handleEdit}
+            onView={handleViewTask}
+            onDeleteSuccess={fetchTasks}
+            page={page}
+            setPage={setPage}
+            count={count}
+            onTaskUpdated={handleTaskUpdated}
+            onFiltersChange={handleFiltersChange}
+          />
         )
       case 'Create Task':
         return (
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6">Create New Task</h2>
-            {/* Create task form will go here */}
+          <div>
+            {successMessage && (
+              <div className="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-md">
+                {successMessage}
+              </div>
+            )}
+            <TaskForm
+              editingTask={editingTask}
+              onSubmit={handleSubmit}
+              onCancel={() => {
+                setEditingTask(null)
+                setActive('Tasks')
+              }}
+            />
           </div>
         )
       default:
@@ -137,64 +264,38 @@ const Dashboard = () => {
     }
   }
 
+  // Find the selected task object for the modal
+  const selectedTask = tasks.find(t => t.id === selectedTaskId)
+
+  useEffect(() => {
+    if (selectedTaskId === null) {
+      fetchTasks();
+    }
+  }, [selectedTaskId]);
+
   return (
     <div className="flex min-h-screen bg-gray-100">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white h-screen flex flex-col border-r border-gray-200 fixed top-0 left-0 z-10 shadow-md">
-        <div className="flex items-center h-16 px-6 font-bold text-lg text-gray-800 border-b border-gray-200">
-          <span className="mr-2">
-            <svg className="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4" stroke="currentColor" strokeWidth="2" fill="#e0e7ff" /><text x="12" y="16" textAnchor="middle" fontSize="10" fill="#1e40af">1</text></svg>
-          </span>
-          Dashboard
-        </div>
-        <nav className="flex-1 py-8 px-0 space-y-1">
-          {menuItems.map(item => {
-            const isActive = active === item.label
-            return (
-              <button
-                key={item.label}
-                onClick={() => setActive(item.label)}
-                className={`flex items-center w-full px-8 py-3 text-base font-medium transition-colors text-left focus:outline-none
-                  ${isActive ? 'text-blue-600 bg-transparent border-l-4 border-blue-600' : 'text-gray-500 border-l-4 border-transparent hover:text-blue-600 hover:bg-gray-50'}`}
-                style={{ background: 'none' }}
-              >
-                {item.icon(isActive)}
-                {item.label}
-              </button>
-            )
-          })}
-        </nav>
-        {/* Profile photo at bottom */}
-        <div className="px-8 pb-8 mt-auto relative flex flex-col items-center">
-          <div
-            className="relative group"
-            tabIndex={0}
-            onClick={() => setShowProfile((v) => !v)}
-            onBlur={() => setShowProfile(false)}
-          >
-            <div className="w-12 h-12 rounded-full bg-blue-200 flex items-center justify-center text-xl font-bold text-blue-800 cursor-pointer shadow-md transition-transform duration-150 hover:scale-110">
-              {getInitials(user.name)}
-            </div>
-            {/* Popover */}
-            {showProfile && (
-              <div className="absolute bottom-16 left-1/2 -translate-x-1/2 mb-2 w-64 bg-white rounded-lg shadow-xl border border-gray-100 p-4 flex flex-col gap-2 animate-fade-in z-30">
-                <div className="font-bold text-lg text-gray-800">{user.name}</div>
-                <div className="text-sm text-gray-500 mb-2">{user.email}</div>
-                <hr className="my-1" />
-                <button
-                  onClick={handleLogout}
-                  className="text-red-600 text-base text-left hover:underline focus:outline-none bg-transparent hover:bg-transparent active:bg-transparent"
-                >
-                  Sign Out
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </aside>
-      {/* Main Content */}
+      <Sidebar
+        active={active}
+        setActive={setActive}
+        user={user}
+        loading={loading}
+        showProfile={showProfile}
+        setShowProfile={setShowProfile}
+        handleLogout={handleLogout}
+      />
       <div className="flex-1 ml-64 p-8">
         {renderContent()}
+        {selectedTaskId && selectedTask && (
+          <TaskDetailsModal
+            task={selectedTask}
+            onClose={() => {
+              console.log('Setting selectedTaskId to null');
+              setSelectedTaskId(null);
+            }}
+            onEdit={handleEdit}
+          />
+        )}
       </div>
     </div>
   )

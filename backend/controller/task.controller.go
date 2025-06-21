@@ -32,9 +32,8 @@ func (c *TaskController) CreateTask(ctx *fiber.Ctx) error {
 	}
 
 	task.UserID = uint(ctx.Locals("user_id").(uint64));
-	result := c.taskService.CreateTask(ctx, task)
 
-	return ctx.Status(result.StatusCode).JSON(result);
+	return c.taskService.CreateTask(ctx, task);
 
 }
 
@@ -110,6 +109,7 @@ func (c *TaskController) SoftDelete(ctx *fiber.Ctx) error {
 func (c *TaskController) UpdateTask(ctx *fiber.Ctx) error {
 
 	id := ctx.Params("id");
+	fmt.Printf("The type of id is: %T\n", id);
 	idInt, err := strconv.ParseUint(id, 10, 64);
 	if err != nil {
 		log.Fatal(err);
@@ -128,5 +128,18 @@ func (c *TaskController) UpdateTask(ctx *fiber.Ctx) error {
 	result := c.taskService.UpdateTask(ctx, idInt, updateTask, userID);
 
 	return ctx.Status(result.StatusCode).JSON(result);
+
+}
+
+
+func (c *TaskController) SearchTask(ctx *fiber.Ctx) error {
+
+	return c.taskService.SearchTask(ctx);
+
+}
+
+func (c *TaskController) FindTasks(ctx *fiber.Ctx) error {
+
+	return c.taskService.FindTasks(ctx);
 
 }
