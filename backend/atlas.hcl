@@ -25,7 +25,7 @@ data "external_schema" "gorm" {
 
 env "gorm" {
   src = data.external_schema.gorm.url
-  dev = "postgres://postgres:kshitij@localhost:5432/tp_db?sslmode=disable"
+  # dev = env("ATLAS_DEV_URL")
   migration {
     dir = "file://db/migrations"
   }
