@@ -1,0 +1,51 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Go build artifacts
+/build/
+bin/
+dist/
+
+# Dependency directories (vendor if using vendoring)
+vendor/
+
+# IDE/editor specific
+.vscode/
+.idea/
+*.swp
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Env files
+.env
+
+# Atlas migration logs/state
+atlas.sum
+
+# Drizzle or migration temp/lock files (if ever generated)
+*.lock
+*.log
+
+# Compiled object files
+*.o
+
+# Go mod cache (if mistakenly added)
+pkg/
+
+# Node (if applicable for frontend part inside monorepo)
+node_modules/
+
+# Test output or coverage reports
+coverage.*
+*.coverprofile
+
+# Generated database migration SQL files (optional if you don't want to track them)
+db/migrations/*.sql

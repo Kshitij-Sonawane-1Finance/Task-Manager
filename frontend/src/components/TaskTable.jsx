@@ -436,7 +436,7 @@ const TaskTable = ({
         <TaskDetailsModal
           task={selectedTask}
           onClose={() => setSelectedTask(null)}
-          onEditSuccess={onEditSuccess}
+          onEditSuccess={sendUnifiedRequest}
         />
       )}
     </div>

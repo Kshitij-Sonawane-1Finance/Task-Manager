@@ -57,6 +57,7 @@ const TaskDetailsModal = ({ task, onClose = () => {}, onEditSuccess = () => {} }
       if (response.status === 200) {
         await fetchUpdatedTask()
         setEditMode(false)
+        console.log("onEditSuccess called");
         onEditSuccess()
       }
     } catch (err) {

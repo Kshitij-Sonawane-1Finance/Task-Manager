@@ -133,13 +133,17 @@ const Dashboard = () => {
   }
 
   const handleEdit = async (taskId) => {
-    if (!taskId) return
-    const task = await fetchTaskById(taskId)
-    if (task) {
-      setEditingTask(task)
-      setSelectedTaskId(null)
-      setActive('Create Task')
-    }
+    // if (!taskId) {
+    //   console.log("No taskId provided");
+    //   return
+    // }
+    // const task = await fetchTaskById(taskId)
+    // if (task) {
+    //   setEditingTask(task)
+    //   setSelectedTaskId(null)
+    //   setActive('Create Task')
+    // }
+    await fetchTasks();
   }
 
   // Show details modal for a task
@@ -226,7 +230,7 @@ const Dashboard = () => {
           <TaskTable 
             tasks={tasks}
             searchQuery={searchQuery}
-            onEdit={handleEdit}
+            onEditSuccess={handleEdit}
             onView={handleViewTask}
             onDeleteSuccess={fetchTasks}
             page={page}
@@ -293,7 +297,7 @@ const Dashboard = () => {
               console.log('Setting selectedTaskId to null');
               setSelectedTaskId(null);
             }}
-            onEdit={handleEdit}
+            onEditSuccess={handleEdit}
           />
         )}
       </div>

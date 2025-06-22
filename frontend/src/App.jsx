@@ -2,6 +2,7 @@ import React from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import Navbar from './components/Navbar.jsx'
 import Login from './pages/Login.jsx'
+import Register from './pages/Register.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 
 // PrivateRoute: Only accessible if logged in
@@ -44,7 +45,7 @@ function App() {
           } />
           <Route path="/register" element={
             <PublicRoute>
-              <div>Register Page</div>
+              <Register />
             </PublicRoute>
           } />
           <Route path="/dashboard" element={
