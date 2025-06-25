@@ -2,8 +2,6 @@ package controller
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/kshitij/taskManager/dto"
-	"github.com/kshitij/taskManager/models"
 	"github.com/kshitij/taskManager/services"
 )
 
@@ -19,37 +17,18 @@ func NewUserController(userService services.UserService) *UserController {
 	return &UserController{userService};
 }
 
+
+// Controllers
 func (c *UserController) CreateUser(ctx *fiber.Ctx) error {
-
-	var user models.User;
-	err := ctx.BodyParser(&user)
-	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"message": "Invalid Request Body",
-		})
-	}
 	
-	result := c.userService.CreateUser(ctx, user);
-
-	return ctx.Status(result.StatusCode).JSON(result);
+	return c.userService.CreateUser(ctx);
 
 }
 
 
 func (c *UserController) Login(ctx *fiber.Ctx) error {
 
-	var userLogin dto.UserLogin;
-
-	err := ctx.BodyParser(&userLogin);
-	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"message": "Invalid Request Body",
-		})
-	}
-
-	result := c.userService.Login(ctx, userLogin);
-
-	return ctx.Status(result.StatusCode).JSON(result);
+	return c.userService.Login(ctx);
 
 }
 

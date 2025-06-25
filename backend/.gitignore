@@ -49,3 +49,6 @@ coverage.*
 
 # Generated database migration SQL files (optional if you don't want to track them)
 db/migrations/*.sql
+
+# this is for my reference
+atlas_cmd.txt

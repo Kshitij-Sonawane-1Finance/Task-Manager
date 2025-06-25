@@ -1,5 +1,5 @@
 // To create Migrations
-atlas migrate diff --env gorm
+atlas migrate diff --env gorm --dev-url
 
 // To apply the migrations
 atlas migrate apply --env gorm --url "postgres://postgres:kshitij@localhost:5432/golang_db?sslmode=disable"
@@ -9,3 +9,7 @@ atlas migrate status --env gorm
 
 // To preview the migration.
 atlas migrate apply --env gorm --dry-run
+
+// to re-generate the hash
+// Note: Always regenerate the hash after manually manipulating the migration sql files
+atlas migrate hash

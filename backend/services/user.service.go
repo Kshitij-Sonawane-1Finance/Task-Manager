@@ -2,7 +2,6 @@ package services
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"time"
 
@@ -18,8 +17,8 @@ import (
 
 // Interface for abstaraction, just display the signature of the Methods which are available in the services
 type UserService interface {
-	CreateUser(ctx *fiber.Ctx, user models.User) ReturnType
-	Login(ctx *fiber.Ctx, userLogin dto.UserLogin) dto.UserLoginReturnType
+	CreateUser(ctx *fiber.Ctx) error
+	Login(ctx *fiber.Ctx) error
 	generateJWT(userID uint) (string, error)
 	verifyPassword(dbPassword string, password string) bool
 	hashPassword(password string) (string, error)
@@ -87,25 +86,31 @@ func (s *userService) generateJWT(userID uint) (string, error) {
 }
 
 // this s *userService works like { this of javascript }
-func (s *userService) CreateUser(ctx *fiber.Ctx, user models.User) ReturnType {
+func (s *userService) CreateUser(ctx *fiber.Ctx) error {
+
+	var user models.User;
+	err := ctx.BodyParser(&user)
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "Invalid Request Body",
+		})
+	}
 
 	var db *gorm.DB = s.dbService.InitializeDB();
 	var dbUser models.User;
 
 	db.First(&dbUser, "email = ?", user.Email);
 	if dbUser.Email != "" {
-		return ReturnType{
-			StatusCode: http.StatusConflict,
-			Message: "User Already Exists",
-		}
+		return ctx.Status(fiber.StatusConflict).JSON(fiber.Map{
+			"message": "User Already Exists",
+		})
 	}
 
 	hashedPassword, err := s.hashPassword(user.Password);
 	if err != nil {
-		return ReturnType{
-			StatusCode: http.StatusInternalServerError,
-			Message: "Internal Server Error",
-		}
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Error Hashing Password",
+		})
 	}
 
 	user.Password = hashedPassword
@@ -113,56 +118,59 @@ func (s *userService) CreateUser(ctx *fiber.Ctx, user models.User) ReturnType {
 	result := db.Create(&user);
 
 	if result.Error != nil {
-		return ReturnType{
-			StatusCode: http.StatusInternalServerError,
-			Message: "Internal Server Error",
-		};
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Error Inserting into Database",
+		})
 	}
 
 	fmt.Println("Inserted Row");
 	fmt.Println(result);
-	return ReturnType{
-		StatusCode: http.StatusCreated,
-		Message: "Registered Successfully",
-	};
+	return ctx.Status(fiber.StatusCreated).JSON(fiber.Map{
+		"message": "Registered Successfully",
+	})
 
 }
 
 
-func (s *userService) Login(ctx *fiber.Ctx, userLogin dto.UserLogin) dto.UserLoginReturnType {
+func (s *userService) Login(ctx *fiber.Ctx) error {
+
+	var userLogin dto.UserLogin;
+
+	err := ctx.BodyParser(&userLogin);
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "Invalid Request Body",
+		})
+	}
 
 	var db *gorm.DB = s.dbService.InitializeDB();
 	var dbUser models.User;
 
 	db.First(&dbUser, "email = ?", userLogin.Email);
 	if dbUser.Email == "" {
-		return dto.UserLoginReturnType{
-			StatusCode: http.StatusUnauthorized,
-			Message: "Invalid Email",
-		}
+		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"message": "Invalid Email",
+		})
 	}
 
 	isPasswordMatch := s.verifyPassword(dbUser.Password, userLogin.Password)
 	if !isPasswordMatch {
-		return dto.UserLoginReturnType{
-			StatusCode: http.StatusUnauthorized,
-			Message: "Invalid Password",
-		}
+		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"message": "Invalid Password",
+		})
 	}
 
 	accessToken, err := s.generateJWT(dbUser.ID)
 	if err != nil {
-		return dto.UserLoginReturnType{
-			StatusCode: http.StatusInternalServerError,
-			Message: "Internal Server Error",
-		}
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Internal Server Error",
+		})
 	}
 
-	return dto.UserLoginReturnType{
-		StatusCode: http.StatusOK,
-		Message: "Login Successful",
-		AccessToken: accessToken,
-	}
+	return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "Login Successful",
+		"accessToken": accessToken,
+	})
 
 }
 
