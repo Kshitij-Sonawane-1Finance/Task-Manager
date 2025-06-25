@@ -26,6 +26,7 @@ Thumbs.db
 
 # Env files
 .env
+.env.sh
 
 # Atlas migration logs/state
 atlas.sum
@@ -48,7 +49,7 @@ coverage.*
 *.coverprofile
 
 # Generated database migration SQL files (optional if you don't want to track them)
-db/migrations/*.sql
+# db/migrations/*.sql
 
 # this is for my reference
 atlas_cmd.txt
